@@ -1,7 +1,10 @@
 import os
 import pickle
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
+from scipy import signal
+from scipy.signal import butter, iirnotch, lfilter
+from ecgdetectors import Detectors
 # %%
 
 class read_data_of_one_subject:
@@ -55,5 +58,73 @@ print(chest_dict_length)
 labels = obj_data[subject].get_labels() # your code here
 baseline = np.asarray([idx for idx,val in enumerate(labels) if val == 1])
 plt.plot(labels)
+
+ecg_base=chest_data_dict['ECG'][baseline,0]
+fs=700
+# cut a smaller window
+ecg=ecg_base[10000:10000+ 10*fs]
+
+t=np.arange(0,ecg.size*(1/fs),(1/fs))
+t=t[:ecg.size]
+
+plt.figure(figsize=(12,4))
+plt.plot(t,ecg)
+plt.xlabel('$Time (s)$') 
+plt.ylabel('$ECG$') 
+
+#FILTERING
+nyq = 0.5*fs
+order=5
+
+# highpass filter
+high=0.5
+high= high/nyq
+b, a = butter(order, high, btype = 'highpass')
+ecg_h = lfilter(b,a,ecg)
+
+# lowpass filter
+low=70
+low= low/nyq
+b, a = butter(order, low)
+ecg_hl = lfilter(b,a,ecg_h)
+
+# notch filter
+notch=50
+notch = notch/nyq
+b, a = iirnotch(notch, Q = 30, fs = fs)
+ecg_hln = lfilter(b,a,ecg_hl)
+
+
+plt.figure(figsize=(12,4))
+plt.plot(t,ecg,label="raw ECG")
+plt.plot(t,ecg_hln, label="filtered ECG")
+plt.xlabel('$Time (s)$') 
+plt.ylabel('$ECG$') 
+plt.legend()
+
+# %%
+detectors = Detectors(fs)
+r_peaks_pan = detectors.pan_tompkins_detector(ecg)
+r_peaks_pan = np.asarray(r_peaks_pan)
+
+plt.figure(figsize=(12,4))
+plt.plot(ecg)
+plt.plot(r_peaks_pan,ecg[r_peaks_pan], 'ro')
+#%%
+from hrv import HRV   # to import the module
+hrv_class = HRV(fs)
+
+feat_nn20=hrv_class.NN20(r_peaks_pan)
+feat_nn50=hrv_class.NN50(r_peaks_pan)
+feat_rmssd=hrv_class.RMSSD(r_peaks_pan)
 # %%
 
+
+
+
+for root, dirs, files in os.walk(data_set_path, topdown=True):
+   for name in dirs:
+      print(os.path.join(root, name))
+
+      
+# %%
