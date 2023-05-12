@@ -128,5 +128,3 @@ for root, dirs, files in os.walk(data_set_path, topdown=True):
 
       
 # %%
-
-# %%
