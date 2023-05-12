@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from keras.models import Sequential
-from keras.layers import Dense, Dropout
+from keras.layers import Dense,  Dropout
 import keras as keras
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
