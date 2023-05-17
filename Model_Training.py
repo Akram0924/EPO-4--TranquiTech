@@ -53,7 +53,7 @@ class read_data_of_one_subject:
         return chest_data
     
 data_set_path = "C:/Users/tjges/OneDrive/Documents/EPO4/WESAD/WESAD/" 
-subject = 'S3'
+subject = 'S6'
 
 # Object instantiation
 obj_data = {}
@@ -184,6 +184,7 @@ data = np.vstack((data_matrix, labels_tot.T))
 
 
 # %%
+print(data.shape)
 def load_data(data):
     y = data[-1,:][np.newaxis,:]
     x = data[:-1,:]
@@ -234,8 +235,9 @@ plot_2class(X_train_pca.T,y_train.T)
 def run_nn(X_train, y_train, X_test, y_test):
     #Creating a simple neural network, sigmoid activation
     input_nodes = X_train.shape[1]
-    hidden_layer_1_nodes = 20
-    hidden_layer_2_nodes = 10
+    hidden_layer_1_nodes = 10
+    hidden_layer_2_nodes = 20
+    hidden_layer_3_nodes = 2
     output_layer = 1
 
     # initializing a sequential model
@@ -246,13 +248,15 @@ def run_nn(X_train, y_train, X_test, y_test):
     full_model.add(Dropout(0.1))
     full_model.add(Dense(hidden_layer_2_nodes, activation='relu'))
     full_model.add(Dropout(0.1))
+    full_model.add(Dense(hidden_layer_3_nodes, activation='relu'))
+    full_model.add(Dropout(0.1))
     full_model.add(Dense(output_layer, activation='sigmoid'))
     full_model.summary()
 
     # Compiling the ANN
     full_model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
-    history = full_model.fit(X_train,y_train,validation_data=(X_test,y_test), epochs=20, batch_size=8, verbose=2)   
+    history = full_model.fit(X_train,y_train,validation_data=(X_test,y_test), epochs=40, batch_size=10, verbose=2)   
     fig, ax = plt.subplots(1)
 
     ax.plot(history.history['loss'], label = "loss")
@@ -260,9 +264,13 @@ def run_nn(X_train, y_train, X_test, y_test):
     ax.set_ylabel("Loss")
     ax.set_xlabel("Epoch [n]")
     ax.legend()
-    return np.rint(full_model.predict(X_test))
-predictions = run_nn(X_train,y_train,X_test,y_test)
-#%%
-print(predictions)
+    return np.rint(full_model.predict(X_test)), np.rint(full_model.predict(X_train))
+
+predictions_test, predictions_train = run_nn(X_train,y_train,X_test,y_test)
+errors_test = np.sum(y_test != predictions_test)
+errors_train = np.sum(y_train != predictions_train)
+
+print("misclassifications = ", errors_test)
+print("misclassifications = ", errors_train)
 
 # %%
