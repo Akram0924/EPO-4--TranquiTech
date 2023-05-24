@@ -13,6 +13,10 @@ from hrv import HRV
 import pickle
 from scipy import signal
 from scipy.signal import butter, iirnotch, lfilter
+from sklearn import datasets, svm
+from sklearn import metrics
+import seaborn as sns
+
 #%%
 
 #data_x = 10*np.random.rand(6,20)
@@ -53,7 +57,7 @@ class read_data_of_one_subject:
         return chest_data
     
 data_set_path = "C:/Users/tjges/OneDrive/Documents/EPO4/WESAD/WESAD/" 
-subject = 'S6'
+subject = 'S2'
 
 # Object instantiation
 obj_data = {}
@@ -266,11 +270,32 @@ def run_nn(X_train, y_train, X_test, y_test):
     ax.legend()
     return np.rint(full_model.predict(X_test)), np.rint(full_model.predict(X_train))
 
-predictions_test, predictions_train = run_nn(X_train,y_train,X_test,y_test)
+predictions_test, predictions_train = run_nn(X_train_pca,y_train,X_test_pca,y_test)
 errors_test = np.sum(y_test != predictions_test)
 errors_train = np.sum(y_train != predictions_train)
 
 print("misclassifications = ", errors_test)
 print("misclassifications = ", errors_train)
 
+# %% Linear Model 
+def run_svm(X_train, y_train, X_test, y_test):
+    model = svm.SVC()
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+    score = model.score(X_test, y_test)
+    cm = metrics.confusion_matrix(y_test, predictions)
+    plt.figure(figsize=(4,4))
+    sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues_r');
+    plt.ylabel('Actual label');
+    plt.xlabel('Predicted label');
+    all_sample_title = 'Accuracy Score: {0}'.format(score)
+    plt.title(all_sample_title, size = 10);
+    return predictions, score
+predictions, score = run_svm(X_train, y_train, X_test, y_test)
+# %%
+def import_recording():
+   df = pd.read_csv(r'C:/Users/tjges/OneDrive/Documents/EPO4/Recording/laatsteTestDinsdag.csv')
+   data = pd.DataFrame
+
+import_recording()
 # %%
