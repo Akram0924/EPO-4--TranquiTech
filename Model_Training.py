@@ -101,12 +101,13 @@ samples_baseline = np.vstack(subarrays_baseline)
 #Assigning labels to stress and baseline sets
 labels_baseline = np.full((samples_baseline.shape[0], 1), 1) # baseline = 1
 labels_stress = np.full((samples_stress.shape[0], 1), 2) # stress = 2
-
+#%%
 #Combining stress and baseline sets into one sample set
 samples = np.vstack((samples_baseline, samples_stress))
 
 #Combinine label set into one
 labels_tot = np.vstack((labels_baseline, labels_stress))
+print(samples.shape)
 
 #%%
 nyq = 0.5*fs
@@ -203,22 +204,24 @@ print(x.shape,y.shape)
 #%%
 #Data must be transposed to fit sklearn train test split
 X, y = load_data(data)
-X_train, X_test, y_train, y_test = train_test_split(X.T, y.T, test_size=0.2,shuffle=True, random_state=42)
+def split_and_PCA (X, y):
+    X_train, X_test, y_train, y_test = train_test_split(X.T, y.T, test_size=0.2,shuffle=True, random_state=42)
 
-#standard normalize the data
-scaler = preprocessing.StandardScaler().fit(X_train)
-X_train = scaler.transform(X_train)
-X_test = scaler.transform(X_test)
-#%%
+    #standard normalize the data
+    scaler = preprocessing.StandardScaler().fit(X_train)
+    X_train = scaler.transform(X_train)
+    X_test = scaler.transform(X_test)
 
-#Running PCA to plot two features 
-# train pca
-pca = PCA(n_components=2) # doing pca and keeping only 5 components
-pca = pca.fit(X_train)
+    #Running PCA to plot two features 
+    # train pca
+    pca = PCA(n_components=2) # doing pca and keeping only 5 components
+    pca = pca.fit(X_train)
 
-# perform pca on features
-X_train_pca=pca.transform(X_train);
-X_test_pca=pca.transform(X_test)
+    # perform pca on features
+    X_train_pca=pca.transform(X_train);
+    X_test_pca=pca.transform(X_test)
+    return(X_train, X_test, y_train, y_test, X_train_pca, X_test_pca)
+X_train, X_test, y_train, y_test, X_train_pca, X_test_pca = split_and_PCA(X, y)
 
 def plot_2class(x_in,y_in):
     #Create a figure
@@ -264,7 +267,7 @@ def run_nn(X_train, y_train, X_test, y_test):
     fig, ax = plt.subplots(1)
 
     ax.plot(history.history['loss'], label = "loss")
-    ax.plot(history.history['val_loss'], label = "val_loss")
+    ax.plot(history.history['val_loss'], label = "validation loss")
     ax.set_ylabel("Loss")
     ax.set_xlabel("Epoch [n]")
     ax.legend()
@@ -278,10 +281,11 @@ print("misclassifications = ", errors_test)
 print("misclassifications = ", errors_train)
 
 # %% Linear Model 
-def run_svm(X_train, y_train, X_test, y_test):
+def run_svm(X_train, y_train, X_test, y_test, X_self):
     model = svm.SVC()
     model.fit(X_train, y_train)
     predictions = model.predict(X_test)
+    X_self_prediction = model.predict(X_self)
     score = model.score(X_test, y_test)
     cm = metrics.confusion_matrix(y_test, predictions)
     plt.figure(figsize=(4,4))
@@ -290,12 +294,79 @@ def run_svm(X_train, y_train, X_test, y_test):
     plt.xlabel('Predicted label');
     all_sample_title = 'Accuracy Score: {0}'.format(score)
     plt.title(all_sample_title, size = 10);
-    return predictions, score
-predictions, score = run_svm(X_train, y_train, X_test, y_test)
+
+    return predictions, score, X_self_prediction
+
 # %%
 def import_recording():
+   Fs = 150 #Sampling Frequency of our sensor
    df = pd.read_csv(r'C:/Users/tjges/OneDrive/Documents/EPO4/Recording/laatsteTestDinsdag.csv')
-   data = pd.DataFrame
+   data = pd.DataFrame(df, columns = ['ECG Data'] ).T
+   one_minute = np.array(data)[:,:150*60]
+   return one_minute
+one_min = import_recording()
+#%%
+def plot_recording(recording, fs):
+    recording = recording[6000:6000+10*fs]
+    t=np.arange(0,recording.size*(1/fs),(1/fs))
+    t=t[:recording.size]
 
-import_recording()
+    plt.figure(figsize=(12,4))
+    plt.plot(t,recording/max(recording))
+    plt.xlabel('$Time (s)$') 
+    plt.ylabel('$ECG$') 
+plot_recording(np.ravel(one_min), 150)
+
+def filter_recording(recording, fs):
+    nyq = 0.5*fs
+    order=5
+    t=np.arange(0,recording.size*(1/fs),(1/fs))
+    t=t[:recording.size]
+
+    # highpass filter
+    high=0.5
+    high= high/nyq
+    b, a = butter(order, high, btype = 'high')
+    ecg_h = lfilter(b,a,recording)
+
+    # lowpass filter
+    low=70
+    low= low/nyq
+    b, a = butter(order, low, btype = 'low')
+    ecg_hl = lfilter(b,a,ecg_h)
+
+    # notch filter
+    notch=50
+    notch = notch/nyq
+    b, a = iirnotch(notch, 30)
+    ecg_filtered = lfilter(b,a,ecg_hl)[100:]
+
+    plt.figure(figsize=(12,4))
+    plt.plot(t,recording/max(recording),label="raw ECG")
+    plt.plot(t[100:],ecg_filtered/max(ecg_filtered), label="filtered ECG")
+    plt.xlabel('$Time (s)$') 
+    plt.ylabel('$ECG$') 
+    plt.legend()
+    return ecg_filtered
+ecg_filtered = filter_recording(np.ravel(one_min), 150)
+#%%
+def feature_extraction(ecg, fs):
+    detectors = Detectors(fs)
+
+    r_peaks_pan = detectors.pan_tompkins_detector(ecg)
+    r_peaks_pan = np.asarray(r_peaks_pan)
+
+    hrv_class = HRV(fs)
+    feat_nn20=hrv_class.NN20(r_peaks_pan)
+    feat_nn50=hrv_class.NN50(r_peaks_pan)
+    feat_rmssd=hrv_class.RMSSD(r_peaks_pan)
+    features = np.array([feat_nn20, feat_nn50, feat_rmssd, np.mean(r_peaks_pan)])[:,np.newaxis]
+    print(features.shape)
+
+    return features.T
+X_self = feature_extraction(ecg_filtered, 150)
+# %% 
+predictions, score, X_self_prediction = run_svm(X_train, y_train, X_test, y_test, X_self)
+print("Tijn's Predicted Label =",X_self_prediction)
+
 # %%
