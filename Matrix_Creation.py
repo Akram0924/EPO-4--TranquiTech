@@ -36,9 +36,8 @@ def train_test_split(df, test_ID):
         else:
             train.append(np.array(df.iloc[o]))
     
-    return train, test
-train, test = train_test_split(df, 1)
-
+    return pd.DataFrame(train), pd.DataFrame(test)
+train, test = train_test_split(df, 2)
 # %%
-test.length
+train
 # %%
