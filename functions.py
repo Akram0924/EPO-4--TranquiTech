@@ -1,19 +1,14 @@
 
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn import preprocessing
 from keras.models import Sequential
 from keras.layers import Dense,  Dropout
 import keras as keras
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
 import pandas as pd
-from ecgdetectors import Detectors
 from hrv import HRV
 import pickle
-from scipy import signal
 from scipy.signal import butter, iirnotch, lfilter
-from sklearn import datasets, svm
+from sklearn import svm
 from sklearn import metrics
 import seaborn as sns
 
@@ -22,7 +17,7 @@ def run_nn(X_train, y_train, X_test, y_test):
     input_nodes = X_train.shape[1]
     hidden_layer_1_nodes = 10
     hidden_layer_2_nodes = 20
-    hidden_layer_3_nodes = 2
+    hidden_layer_3_nodes = 5
     output_layer = 1
 
     # initializing a sequential model
@@ -51,11 +46,11 @@ def run_nn(X_train, y_train, X_test, y_test):
     ax.legend()
     return np.rint(full_model.predict(X_test)), np.rint(full_model.predict(X_train))
 
-def run_svm(X_train, y_train, X_test, y_test, X_self):
+def run_svm(X_train, y_train, X_test, y_test):
     model = svm.SVC()
     model.fit(X_train, y_train)
     predictions = model.predict(X_test)
-    X_self_prediction = model.predict(X_self)
+
     score = model.score(X_test, y_test)
     cm = metrics.confusion_matrix(y_test, predictions)
     plt.figure(figsize=(4,4))
@@ -65,18 +60,25 @@ def run_svm(X_train, y_train, X_test, y_test, X_self):
     all_sample_title = 'Accuracy Score: {0}'.format(score)
     plt.title(all_sample_title, size = 10);
 
-    return predictions, score, X_self_prediction
+    return predictions, score
 
-def normalize_df(df):
+def normalize_df(train, test):
 
-    df_id = df.iloc[:,0]
-    df_data = df.iloc[:,1:-1]
-    df_y = df.iloc[:,-1]
-    norm_data=(df_data-df_data.mean())/df_data.std()
-    norm_data.insert(0,"ID",df_id)
-    norm_data.insert(df_data.shape[1] + 1, "lables", df_y)
+    train_id = train.iloc[:,0]
+    train_data = train.iloc[:,1:-1]
+    train_y = train.iloc[:,-1]
+    train_norm =(train_data-train_data.mean())/train_data.std()
+    train_norm.insert(0,"ID",train_id)
+    train_norm.insert(train_data.shape[1] + 1, "lables", train_y)
 
-    return norm_data
+    test_id = test.iloc[:,0]
+    test_data = test.iloc[:,1:-1]
+    test_y = test.iloc[:,-1]
+    test_norm =(test_data-train_data.mean())/train_data.std()
+    test_norm.insert(0,"ID",test_id)
+    test_norm.insert(test_data.shape[1] + 1, "lables", test_y)
+
+    return train_norm, test_norm
 
 def smart_train_test_split(df, test_ID):
     train = []
