@@ -56,4 +56,8 @@ def load_data(train, test):
     return X_train, X_test, Y_train, Y_test
 X_train, X_test, Y_train, Y_test = load_data(train, test)
 # %%
+from Model_Training import run_nn
 
+predictions_test, predictions_train = run_nn(X_train, Y_train, X_test, Y_test)
+
+# %%
