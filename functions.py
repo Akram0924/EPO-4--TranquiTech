@@ -17,7 +17,7 @@ def run_nn(X_train, y_train, X_test, y_test):
     input_nodes = X_train.shape[1]
     hidden_layer_1_nodes = 10
     hidden_layer_2_nodes = 20
-    hidden_layer_3_nodes = 5
+    hidden_layer_3_nodes = 10
     output_layer = 1
 
     # initializing a sequential model
@@ -36,7 +36,7 @@ def run_nn(X_train, y_train, X_test, y_test):
     # Compiling the ANN
     full_model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
-    history = full_model.fit(X_train,y_train,validation_data=(X_test,y_test), epochs=40, batch_size=10, verbose=2)   
+    history = full_model.fit(X_train,y_train,validation_data=(X_test,y_test), epochs=50, batch_size=10, verbose=2)   
     fig, ax = plt.subplots(1)
 
     ax.plot(history.history['loss'], label = "loss")
@@ -44,7 +44,15 @@ def run_nn(X_train, y_train, X_test, y_test):
     ax.set_ylabel("Loss")
     ax.set_xlabel("Epoch [n]")
     ax.legend()
-    return np.rint(full_model.predict(X_test)), np.rint(full_model.predict(X_train))
+
+    cm = metrics.confusion_matrix(y_test, np.rint(full_model.predict(X_test)))
+    plt.figure(figsize=(4,4))
+    sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues_r');
+    plt.ylabel('Actual label');
+    plt.xlabel('Predicted label');
+    all_sample_title = 'NN Accuracy Score: {0}'.format(max(history.history["val_accuracy"]))
+    plt.title(all_sample_title, size = 10);
+    return np.rint(full_model.predict(X_test)), max(history.history["val_accuracy"])
 
 def run_svm(X_train, y_train, X_test, y_test):
     model = svm.SVC()
@@ -57,7 +65,7 @@ def run_svm(X_train, y_train, X_test, y_test):
     sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues_r');
     plt.ylabel('Actual label');
     plt.xlabel('Predicted label');
-    all_sample_title = 'Accuracy Score: {0}'.format(score)
+    all_sample_title = 'SVM Accuracy Score: {0}'.format(score)
     plt.title(all_sample_title, size = 10);
 
     return predictions, score
@@ -74,7 +82,7 @@ def normalize_df(train, test):
     test_id = test.iloc[:,0]
     test_data = test.iloc[:,1:-1]
     test_y = test.iloc[:,-1]
-    test_norm =(test_data-train_data.mean())/train_data.std()
+    test_norm =(test_data-train_data.mean())/train_data.std() #Using train mean and STD to normalize also test data
     test_norm.insert(0,"ID",test_id)
     test_norm.insert(test_data.shape[1] + 1, "lables", test_y)
 
@@ -96,8 +104,8 @@ def smart_train_test_split(df, test_ID):
 def load_data(train, test):
     X_train = train.iloc[:,1:-1]
     X_test = test.iloc[:,1:-1]
-    Y_train = train.iloc[:,-1]
-    Y_test = test.iloc[:,-1]
+    Y_train = train.iloc[:,-1] - 1 #To obtain labels 0-1 for proper training
+    Y_test = test.iloc[:,-1] - 1
 
     return X_train, X_test, Y_train, Y_test
 

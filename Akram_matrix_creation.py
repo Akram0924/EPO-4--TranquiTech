@@ -225,7 +225,7 @@ def load_data(train, test):
     return X_train, X_test, Y_train, Y_test
 
 #%%
-time_window = 10  # in seconds
+time_window = 5  # in seconds
 start_subject = 2 # first subject
 end_subject = 15   # last subject
 
@@ -242,7 +242,7 @@ output=output.rename(columns={0:"ID"})
 #%%
 import os  
 #os.makedirs('C:/Users/tjges/OneDrive/Documents/EPO4/all_people', exist_ok=True)  
-output.to_csv('C:/Users/tjges/OneDrive/Documents/EPO4/all_people/out_window_10.csv', index=False) 
+output.to_csv('C:/Users/tjges/OneDrive/Documents/EPO4/all_people/out_window_5.csv', index=False) 
 # %%
 output
 # %%
