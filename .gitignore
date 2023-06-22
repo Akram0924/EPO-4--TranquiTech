@@ -6,3 +6,5 @@ virtual/
 ENV/
 env.bak/
 virtual.bak/
+.venv
+venv/
