@@ -1,0 +1,1 @@
+#One hidden layer, input dimension nodes, no kernel regularizer
